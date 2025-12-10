@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../providers/fpl_provider.dart';
 import '../models/fixture.dart';
 import '../models/team.dart';
+import 'match_details_screen.dart';
 
 class FixturesScreen extends StatelessWidget {
   const FixturesScreen({super.key});
@@ -196,8 +197,17 @@ class FixturesScreen extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            // Could show fixture details
-            _showFixtureDetails(context, fixture, homeTeam, awayTeam);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MatchDetailsScreen(
+                  fixture: fixture,
+                  homeTeam: homeTeam,
+                  awayTeam: awayTeam,
+                  provider: provider,
+                ),
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -473,57 +483,4 @@ class FixturesScreen extends StatelessWidget {
     );
   }
 
-  void _showFixtureDetails(BuildContext context, Fixture fixture, Team homeTeam, Team awayTeam) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF2A0A2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${homeTeam.name} vs ${awayTeam.name}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            if (fixture.started)
-              Text(
-                'Score: ${fixture.teamHScore} - ${fixture.teamAScore}',
-                style: const TextStyle(
-                  color: Color(0xFF00FF87),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            const SizedBox(height: 16),
-            Text(
-              'Status: ${fixture.status}',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00FF87),
-                foregroundColor: const Color(0xFF37003C),
-              ),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

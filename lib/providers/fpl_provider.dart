@@ -2,14 +2,18 @@ import 'package:flutter/foundation.dart';
 import '../models/team.dart';
 import '../models/fixture.dart';
 import '../models/gameweek.dart';
+import '../models/player.dart';
 import '../services/fpl_api_service.dart';
+import '../services/football_data_api_service.dart';
 
 class FPLProvider extends ChangeNotifier {
   final FPLApiService _apiService = FPLApiService.instance;
+  final FootballDataApiService _footballDataService = FootballDataApiService.instance;
 
   List<Team> _teams = [];
   List<Fixture> _fixtures = [];
   List<Gameweek> _gameweeks = [];
+  List<Player> _players = [];
   Gameweek? _currentGameweek;
   int _selectedGameweek = 1;
   bool _isLoading = false;
@@ -19,6 +23,7 @@ class FPLProvider extends ChangeNotifier {
   List<Team> get teams => _teams;
   List<Fixture> get fixtures => _fixtures;
   List<Gameweek> get gameweeks => _gameweeks;
+  List<Player> get players => _players;
   Gameweek? get currentGameweek => _currentGameweek;
   int get selectedGameweek => _selectedGameweek;
   bool get isLoading => _isLoading;
@@ -72,12 +77,108 @@ class FPLProvider extends ChangeNotifier {
 
   Future<void> loadTeams() async {
     try {
-      _teams = await _apiService.getTeams();
+      // Load FPL teams for logos and basic info
+      final fplTeams = await _apiService.getTeams();
+      
+      // Load external API teams for real stats
+      try {
+        final externalTeams = await _footballDataService.getLeagueStandings();
+        
+        // Merge: use FPL logos but external API stats
+        _teams = fplTeams.map((fplTeam) {
+          // Find matching external team using both full name and short name
+          final externalTeam = externalTeams.firstWhere(
+            (ext) => _teamsMatch(fplTeam.name, ext.name) || _teamsMatch(fplTeam.shortName, ext.name),
+            orElse: () => fplTeam,
+          );
+          
+          // If we found a match, use external stats
+          if (externalTeam != fplTeam) {
+            return Team(
+              id: fplTeam.id,
+              name: fplTeam.name,
+              shortName: fplTeam.shortName,
+              code: fplTeam.code, // Keep FPL code for logo
+              draw: externalTeam.draw,
+              form: fplTeam.form,
+              loss: externalTeam.loss,
+              played: externalTeam.played,
+              points: externalTeam.points,
+              position: externalTeam.position,
+              strength: fplTeam.strength,
+              strengthAttackAway: fplTeam.strengthAttackAway,
+              strengthAttackHome: fplTeam.strengthAttackHome,
+              strengthDefenceAway: fplTeam.strengthDefenceAway,
+              strengthDefenceHome: fplTeam.strengthDefenceHome,
+              strengthOverallAway: fplTeam.strengthOverallAway,
+              strengthOverallHome: fplTeam.strengthOverallHome,
+              unavailable: fplTeam.unavailable,
+              win: externalTeam.win,
+              pulse: fplTeam.pulse,
+              goalsFor: externalTeam.goalsFor,
+              goalsAgainst: externalTeam.goalsAgainst,
+            );
+          }
+          return fplTeam;
+        }).toList();
+      } catch (e) {
+        // If external API fails, just use FPL teams
+        print('External API failed, using FPL teams only: $e');
+        _teams = fplTeams;
+      }
+      
       notifyListeners();
     } catch (e) {
       _setError('Failed to load teams: $e');
       rethrow;
     }
+  }
+
+  /// Check if two team names match
+  bool _teamsMatch(String name1, String name2) {
+    // Normalize names: lowercase and remove FC/AFC suffixes and special characters
+    String normalize(String name) {
+      return name
+          .toLowerCase()
+          .replaceAll(' fc', '')
+          .replaceAll(' afc', '')
+          .replaceAll('&', 'and')
+          .replaceAll("'", '') // Remove apostrophes (e.g., "Nott'm" -> "Nottm")
+          .replaceAll(RegExp(r'\s+'), '')
+          .trim();
+    }
+    
+    final n1 = normalize(name1);
+    final n2 = normalize(name2);
+    
+    // Exact match after normalization
+    if (n1 == n2) return true;
+    
+    // Check if one contains the other (for partial matches)
+    if (n1.contains(n2) || n2.contains(n1)) return true;
+    
+    // Special cases mapping - maps normalized names to possible variations
+    final specialCases = {
+      'brightonhovealbion': ['brighton', 'brightonandhovalbion'],
+      'manchestercity': ['mancity', 'manchestercity', 'manci'],
+      'manchesterunited': ['manutd', 'manchesterunited', 'manu'],
+      'tottenhamhotspur': ['spurs', 'tottenham', 'tottenhamhotspur'],
+      'wolverhamptonwanderers': ['wolves', 'wolverhampton', 'wolverhamptonwanderers'],
+      'nottinghamforest': ['nottm', 'nottingham', 'nottinghamforest', 'nottmforest'],
+      'westhamunited': ['westham', 'westhamunited'],
+      'afcbournemouth': ['bournemouth', 'afcbournemouth'],
+      'leedsunited': ['leeds', 'leedsunited'],
+    };
+    
+    // Check special cases bidirectionally
+    for (final entry in specialCases.entries) {
+      if (n1 == entry.key && entry.value.contains(n2)) return true;
+      if (n2 == entry.key && entry.value.contains(n1)) return true;
+      // Also check if both are in the same variation list
+      if (entry.value.contains(n1) && entry.value.contains(n2)) return true;
+    }
+    
+    return false;
   }
 
   Future<void> loadGameweeks() async {
@@ -136,6 +237,10 @@ class FPLProvider extends ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  List<Player> getPlayersByTeamId(int teamId) {
+    return _players.where((player) => player.teamCode == teamId).toList();
   }
 
   String getTeamLogoUrl(int teamId) {

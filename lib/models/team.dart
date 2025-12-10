@@ -19,6 +19,8 @@ class Team {
   final bool unavailable;
   final int win;
   final int pulse;
+  final int goalsFor;
+  final int goalsAgainst;
 
   Team({
     required this.id,
@@ -41,6 +43,8 @@ class Team {
     required this.unavailable,
     required this.win,
     required this.pulse,
+    this.goalsFor = 0,
+    this.goalsAgainst = 0,
   });
 
   factory Team.fromJson(Map<String, dynamic> json) {
@@ -89,9 +93,7 @@ class Team {
     return value?.toString() ?? '';
   }
 
-  // Calculate goals for and against from the API data
-  int get goalsFor => form; // This would need to be calculated from fixtures
-  int get goalsAgainst => 0; // This would need to be calculated from fixtures
+  // Calculate goal difference
   int get goalDifference => goalsFor - goalsAgainst;
 
   // Team colors for UI styling
