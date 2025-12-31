@@ -1,5 +1,6 @@
 class Player {
   final int id;
+  final int code; // Player code for photos
   final String firstName;
   final String secondName;
   final String webName;
@@ -20,6 +21,7 @@ class Player {
 
   Player({
     required this.id,
+    required this.code,
     required this.firstName,
     required this.secondName,
     required this.webName,
@@ -42,6 +44,7 @@ class Player {
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
       id: _toInt(json['id']),
+      code: _toInt(json['code']),
       firstName: _toString(json['first_name']),
       secondName: _toString(json['second_name']),
       webName: _toString(json['web_name']),

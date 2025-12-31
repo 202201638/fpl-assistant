@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'main_screen.dart';
+import 'package:provider/provider.dart';
+import 'auth_wrapper.dart';
+import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -69,19 +71,25 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateToMainScreen() async {
     await Future.delayed(const Duration(seconds: 4));
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const MainScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
+      // Initialize auth provider
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.initialize();
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const AuthWrapper(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
     }
   }
 

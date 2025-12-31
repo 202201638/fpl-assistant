@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'league_table_screen.dart';
 import 'fixtures_screen.dart';
 import 'transfers_screen.dart';
+import 'team_plan_screen.dart';
 import 'more_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = [
     const LeagueTableScreen(),
     const FixturesScreen(),
+    const TeamPlanScreen(),
     const TransfersScreen(),
     const MoreScreen(),
   ];
@@ -45,11 +47,11 @@ class _MainScreenState extends State<MainScreen> {
           selectedItemColor: const Color(0xFF00FF87),
           unselectedItemColor: Colors.white54,
           selectedLabelStyle: const TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
           unselectedLabelStyle: const TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w400,
           ),
           currentIndex: _currentIndex,
@@ -68,11 +70,15 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Fixtures',
             ),
             BottomNavigationBarItem(
-              icon: _buildNavIcon(Icons.swap_horiz, 2),
+              icon: _buildNavIcon(Icons.people, 2),
+              label: 'My Team',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildNavIcon(Icons.swap_horiz, 3),
               label: 'Transfers',
             ),
             BottomNavigationBarItem(
-              icon: _buildNavIcon(Icons.more_horiz, 3),
+              icon: _buildNavIcon(Icons.more_horiz, 4),
               label: 'More',
             ),
           ],

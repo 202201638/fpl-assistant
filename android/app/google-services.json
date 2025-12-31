@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "451304515916",
+    "project_id": "fpl-assistant-a7445",
+    "storage_bucket": "fpl-assistant-a7445.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451304515916:android:d3c9b68ad7e34dabf707e9",
+        "android_client_info": {
+          "package_name": "com.example.fpl_assistant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfE2Z53ME77sVYUS9oNjXPowqZuqTEoYA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451304515916:android:be355884f1a39817f707e9",
+        "android_client_info": {
+          "package_name": "com.fbl_assistant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfE2Z53ME77sVYUS9oNjXPowqZuqTEoYA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

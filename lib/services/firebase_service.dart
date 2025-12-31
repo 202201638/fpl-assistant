@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../models/fixture.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
-  late FirebaseFirestore _firestore;
-  late FirebaseAuth _auth;
+  FirebaseFirestore? _firestore;
+  FirebaseAuth? _auth;
   bool _isInitialized = false;
 
   factory FirebaseService() {
@@ -14,12 +13,24 @@ class FirebaseService {
   }
 
   FirebaseService._internal();
+  
+  FirebaseFirestore get firestore {
+    _firestore ??= FirebaseFirestore.instance;
+    return _firestore!;
+  }
+  
+  FirebaseAuth get auth {
+    _auth ??= FirebaseAuth.instance;
+    return _auth!;
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      await Firebase.initializeApp();
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
       _firestore = FirebaseFirestore.instance;
       _auth = FirebaseAuth.instance;
       _isInitialized = true;
@@ -33,10 +44,14 @@ class FirebaseService {
   // Authentication
   Future<UserCredential?> signUpWithEmail(String email, String password) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      final credential = await auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      print('Sign up error: ${e.code} - ${e.message}');
+      rethrow;
     } catch (e) {
       print('Sign up error: $e');
       rethrow;
@@ -45,10 +60,14 @@ class FirebaseService {
 
   Future<UserCredential?> signInWithEmail(String email, String password) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      final credential = await auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      print('Sign in error: ${e.code} - ${e.message}');
+      rethrow;
     } catch (e) {
       print('Sign in error: $e');
       rethrow;
@@ -57,7 +76,7 @@ class FirebaseService {
 
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
+      await auth.signOut();
     } catch (e) {
       print('Sign out error: $e');
       rethrow;
@@ -65,20 +84,20 @@ class FirebaseService {
   }
 
   User? getCurrentUser() {
-    return _auth.currentUser;
+    return auth.currentUser;
   }
 
   Stream<User?> authStateChanges() {
-    return _auth.authStateChanges();
+    return auth.authStateChanges();
   }
 
   // Starred Matches
   Future<void> saveStarredMatch(int matchId, String homeTeam, String awayTeam) async {
     try {
-      final userId = _auth.currentUser?.uid;
+      final userId = auth.currentUser?.uid;
       if (userId == null) return;
 
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('starred_matches')
@@ -97,10 +116,10 @@ class FirebaseService {
 
   Future<void> removeStarredMatch(int matchId) async {
     try {
-      final userId = _auth.currentUser?.uid;
+      final userId = auth.currentUser?.uid;
       if (userId == null) return;
 
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('starred_matches')
@@ -113,12 +132,12 @@ class FirebaseService {
   }
 
   Stream<List<int>> getStarredMatches() {
-    final userId = _auth.currentUser?.uid;
+    final userId = auth.currentUser?.uid;
     if (userId == null) {
       return Stream.value([]);
     }
 
-    return _firestore
+    return firestore
         .collection('users')
         .doc(userId)
         .collection('starred_matches')
@@ -134,7 +153,7 @@ class FirebaseService {
     required Map<String, dynamic> preferences,
   }) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      await firestore.collection('users').doc(userId).update({
         'preferences': preferences,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -146,7 +165,7 @@ class FirebaseService {
 
   Future<Map<String, dynamic>?> getUserPreferences(String userId) async {
     try {
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final doc = await firestore.collection('users').doc(userId).get();
       return doc.data()?['preferences'] as Map<String, dynamic>?;
     } catch (e) {
       print('Error getting user preferences: $e');
@@ -161,7 +180,7 @@ class FirebaseService {
     required String displayName,
   }) async {
     try {
-      await _firestore.collection('users').doc(userId).set({
+      await firestore.collection('users').doc(userId).set({
         'email': email,
         'displayName': displayName,
         'createdAt': FieldValue.serverTimestamp(),
@@ -176,7 +195,7 @@ class FirebaseService {
 
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final doc = await firestore.collection('users').doc(userId).get();
       return doc.data();
     } catch (e) {
       print('Error getting user profile: $e');
@@ -187,7 +206,7 @@ class FirebaseService {
   // Favorite Teams
   Future<void> addFavoriteTeam(String userId, int teamId) async {
     try {
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('favorite_teams')
@@ -204,7 +223,7 @@ class FirebaseService {
 
   Future<void> removeFavoriteTeam(String userId, int teamId) async {
     try {
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('favorite_teams')
@@ -217,7 +236,7 @@ class FirebaseService {
   }
 
   Stream<List<int>> getFavoriteTeams(String userId) {
-    return _firestore
+    return firestore
         .collection('users')
         .doc(userId)
         .collection('favorite_teams')
@@ -234,7 +253,7 @@ class FirebaseService {
     required String note,
   }) async {
     try {
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('match_notes')
@@ -252,7 +271,7 @@ class FirebaseService {
 
   Future<String?> getMatchNote(String userId, int matchId) async {
     try {
-      final doc = await _firestore
+      final doc = await firestore
           .collection('users')
           .doc(userId)
           .collection('match_notes')
@@ -267,7 +286,7 @@ class FirebaseService {
 
   Future<void> deleteMatchNote(String userId, int matchId) async {
     try {
-      await _firestore
+      await firestore
           .collection('users')
           .doc(userId)
           .collection('match_notes')
@@ -282,7 +301,7 @@ class FirebaseService {
   // Sync Data
   Future<void> syncUserData(String userId, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      await firestore.collection('users').doc(userId).update({
         'lastSync': FieldValue.serverTimestamp(),
         'syncData': data,
       });
@@ -294,7 +313,7 @@ class FirebaseService {
 
   Future<Map<String, dynamic>?> getSyncData(String userId) async {
     try {
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final doc = await firestore.collection('users').doc(userId).get();
       return doc.data()?['syncData'] as Map<String, dynamic>?;
     } catch (e) {
       print('Error getting sync data: $e');

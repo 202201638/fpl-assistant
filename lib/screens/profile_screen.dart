@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/auth_provider.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,27 +31,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _loadUserData() {
-    // TODO: Load saved user data from SharedPreferences
-    // For now, using mock data
-    _fplIdController.text = '';
-    _teamNameController.text = '';
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedFplId = prefs.getString('fpl_team_id');
+    final savedTeamName = prefs.getString('fpl_team_name');
+    
+    if (mounted) {
+      setState(() {
+        _fplIdController.text = savedFplId ?? '';
+        _teamNameController.text = savedTeamName ?? '';
+      });
+    }
   }
 
-  void _saveProfile() async {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
       try {
-        // TODO: Save to SharedPreferences and validate FPL ID
-        await Future.delayed(const Duration(seconds: 1)); // Mock API call
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('fpl_team_id', _fplIdController.text);
+        await prefs.setString('fpl_team_name', _teamNameController.text);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Profile saved successfully!'),
+              content: Text('Profile saved successfully! Go to "My Team" to see your squad.'),
               backgroundColor: Color(0xFF00FF87),
             ),
           );
@@ -87,6 +98,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          // Logout Button
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () => _showLogoutDialog(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -125,6 +143,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userEmail = authProvider.userEmail ?? 'User';
+    
     return Center(
       child: Column(
         children: [
@@ -162,10 +183,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           
           Text(
-            'Connect your FPL account to get started',
+            userEmail,
             style: TextStyle(
               color: Colors.white.withOpacity(0.7),
               fontSize: 14,
+            ),
+          ),
+          
+          const SizedBox(height: 4),
+          
+          Text(
+            'Connect your FPL account to get started',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 12,
             ),
           ),
         ],
@@ -446,6 +477,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               'Got it!',
+              style: TextStyle(color: Color(0xFF00FF87)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A0A2E),
+        title: const Text(
+          'Logout',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.signOut();
+              
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text(
+              'Logout',
               style: TextStyle(color: Color(0xFF00FF87)),
             ),
           ),
